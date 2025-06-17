@@ -1,0 +1,88 @@
+Step 1: Restrict Access to the Admin Page
+Option A: IP Whitelisting (Best for Private Networks)
+
+Allow access only from trusted IPs:
+
+Nginx Example:
+
+location /admin/ {
+    allow 192.168.1.0/24;
+    deny all;
+}
+
+Apache Example:
+
+<Directory "/var/www/html/admin">
+    Require ip 192.168.1.0/24
+</Directory>
+
+Option B: Hide Admin Path (Security through Obscurity + Real Security)
+
+Change the default admin URL:
+
+Django:
+
+# urls.py
+urlpatterns = [
+    path('my-secret-admin/', admin.site.urls),
+]
+
+Flask-Admin:
+
+admin = Admin(app, url='/my-secret-admin')
+
+Laravel:
+
+Use a custom route or admin middleware group.
+✅ Step 2: Protect Against Brute-Force Login Attempts
+Option A: Rate Limiting (Best Practice)
+Middleware / Package-Based:
+
+    Django: Use django-axes
+
+pip install django-axes
+
+In settings.py:
+
+INSTALLED_APPS += ['axes']
+MIDDLEWARE += ['axes.middleware.AxesMiddleware']
+
+Then run:
+
+python manage.py migrate
+
+It will automatically block failed login attempts based on IP or username.
+
+    Flask: Use Flask-Limiter
+
+from flask_limiter import Limiter
+
+limiter = Limiter(app, default_limits=["5 per minute"])
+
+    Laravel: Use built-in throttling:
+
+// In routes/web.php
+Route::post('/login', 'Auth\LoginController@login')->middleware('throttle:5,1');
+
+Option B: CAPTCHA After Failed Attempts
+
+Add a CAPTCHA (like Google reCAPTCHA) after 3-5 failed login attempts.
+
+Most frameworks support it via middleware or form plugins.
+✅ Step 3: Add 2FA (Optional but Strongly Recommended)
+
+Enable Two-Factor Authentication (2FA) for your admin login using:
+
+    Django: django-two-factor-auth
+
+    Laravel: Use built-in 2FA via Laravel Fortify or Jetstream
+
+    Flask: Use Flask-Security or Flask-User with 2FA support
+
+✅ Step 4: Monitor Login Attempts
+
+Log and alert on repeated failed logins:
+
+    Use tools like Fail2Ban to automatically block IPs
+
+    Send alerts on suspicious logins
