@@ -1,0 +1,79 @@
+🛠️ Steps to Fix
+1. Validate and Normalize Login Routes
+
+If you're using something like React Router, Next.js, Express, or similar:
+
+Ensure that only the exact route /login is handled by the login component, and anything like /login, or /login/extra is either:
+
+    redirected to /login, or
+
+    shows a 404.
+
+Example (React Router v6)
+
+<Route path="/login" element={<LoginPage />} />
+<Route path="*" element={<NotFoundPage />} />
+
+Add logic to normalize bad login URLs:
+
+// In App or Layout
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+function NormalizePath() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (pathname.startsWith('/login') && pathname !== '/login') {
+      navigate('/login', { replace: true });
+    }
+  }, [pathname]);
+
+  return null;
+}
+
+2. Ensure Login Check Before Rendering Protected Routes
+
+If you’re not already checking for session/auth status on protected pages like /workflow, add middleware logic or route guards.
+Example (React)
+
+function ProtectedRoute({ children }) {
+  const isLoggedIn = useAuth(); // your hook/context
+  const location = useLocation();
+
+  if (!isLoggedIn) {
+    return <Navigate to="/login" state={{ from: location }} />;
+  }
+
+  return children;
+}
+
+Use it like:
+
+<Route path="/workflow" element={
+  <ProtectedRoute>
+    <WorkflowPage />
+  </ProtectedRoute>
+} />
+
+3. Sanitize Server-Side Routing (if applicable)
+
+If you're using a backend like Express, make sure you strictly define routes:
+
+app.get('/login', (req, res) => {
+  // show login page
+});
+
+app.get('/login*', (req, res) => {
+  // redirect malformed login URLs to the correct one
+  res.redirect('/login');
+});
+
+✅ Final Advice
+
+    Add logging or monitoring to see how often malformed URLs are hit.
+
+    Write unit tests or integration tests for /login, /login,, /workflow with and without login.
+
+    If you use Next.js, ensure [...slug].js isn’t catching /login, and misrouting it.
