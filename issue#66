@@ -1,0 +1,86 @@
+A CSRF token bypass means that an attacker has found a way to submit unauthorized requests to your server, possibly by:
+
+    Guessing or reusing tokens
+
+    Exploiting improper token validation
+
+    Leveraging misconfigurations (e.g., token not verified for unsafe HTTP methods like POST/PUT/DELETE)
+
+    Targeting login/CSRF-exempted endpoints
+
+✅ Fixing the CSRF Token Bypass
+1. Verify CSRF Tokens on All Unsafe HTTP Methods
+
+Ensure that CSRF checks are enabled on all unsafe methods: POST, PUT, DELETE, PATCH.
+
+In Django, for example, use:
+
+@csrf_protect
+def my_view(request):
+    ...
+
+Or use the middleware:
+
+MIDDLEWARE = [
+    ...
+    'django.middleware.csrf.CsrfViewMiddleware',
+    ...
+]
+
+2. Use a Cryptographically Secure CSRF Token Generator
+
+Make sure the CSRF token is:
+
+    Random
+
+    Long enough (at least 128 bits)
+
+    Tied to the user session or stored securely (e.g., in HttpOnly session cookies)
+
+Frameworks like Django, Flask-WTF, and Laravel already do this — just don’t override or weaken it.
+3. Avoid Storing CSRF Tokens in Insecure Places
+
+Never store CSRF tokens in:
+
+    URLs (they can be leaked in logs, referer headers)
+
+    LocalStorage/sessionStorage (JavaScript-accessible — risk of XSS)
+
+Instead, use hidden form fields or secure, same-site cookies.
+4. Use SameSite Cookies Where Applicable
+
+Set your session cookies (and CSRF cookies if used) to:
+
+SameSite=Lax
+
+or
+
+SameSite=Strict
+
+This prevents cookies from being sent in cross-origin requests (which stops CSRF in many cases).
+5. Check the Referer and Origin Headers (optional hardening)
+
+For extra protection, validate Origin and Referer headers for sensitive requests:
+
+origin = request.headers.get("Origin")
+if origin and not origin.startswith("https://yourdomain.com"):
+    return HttpResponseForbidden()
+
+(But don't rely on this alone — some clients don't send these headers.)
+6. Fix Any Whitelisting Mistakes
+
+Don’t whitelist CSRF-exempt routes unless absolutely necessary. Many CSRF bypasses happen due to:
+
+@csrf_exempt
+def login(request):  # bad idea
+
+Only use @csrf_exempt for API endpoints using token-based auth, not cookie-authenticated endpoints.
+7. Implement CSRF Tokens in APIs Carefully
+
+For APIs:
+
+    Don’t rely on cookies alone for auth
+
+    Use Authorization headers with JWT or OAuth2
+
+    If you must use CSRF, require tokens in custom headers (X-CSRFToken)
